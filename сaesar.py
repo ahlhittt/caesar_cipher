@@ -21,6 +21,7 @@ MIXED_ALPHABETS_ERROR = (
 
 
 def has_mixed_alphabets(text):
+    """Проверяет, содержит ли текст одновременно и русские, и английские буквы"""
     has_rus = False
     has_eng = False
     for char in text.lower().replace("ё", "е"):
@@ -34,6 +35,7 @@ def has_mixed_alphabets(text):
 
 
 def detect_alphabet(text):
+    """Определяет алфавит текста (русский или английский) по первой найденной букве"""
     if has_mixed_alphabets(text):
         return None
     for char in text.lower():
@@ -45,14 +47,17 @@ def detect_alphabet(text):
 
 
 def char_to_index(char, alphabet):
+    """Возвращает порядковый номер буквы в алфавите"""
     return alphabet.index(char)
 
 
 def index_to_char(ind, alphabet):
+    """Возвращает букву из алфавита по её индексу (с защитой от выхода за границы)"""
     return alphabet[ind % len(alphabet)]
 
 
 def clean_text(text, alphabet):
+    """Приводит текст к нижнему регистру, заменяет 'ё' на 'е' и удаляет все сторонние символы"""
     text = text.lower().replace("ё", "е")
     cleaned_text = ""
     for char in text:
@@ -64,14 +69,17 @@ def clean_text(text, alphabet):
 
 
 def format_output(text, length):
+    """Разбивает текст на блоки заданной длины"""
     return " ".join([text[i:i + length] for i in range(0, len(text), length)])
 
 
 def is_error(result):
+    """Проверяет, является ли результат выполнения функции строкой с ошибкой"""
     return isinstance(result, str) and result.startswith("Ошибка")
 
 
 def caesar_encrypt(text, key):
+    """Шифрует текст методом Цезаря со сдвигом на величину key"""
     if has_mixed_alphabets(text):
         return MIXED_ALPHABETS_ERROR
     alphabet = detect_alphabet(text)
@@ -93,6 +101,7 @@ def caesar_encrypt(text, key):
 
 
 def caesar_decrypt(ciphertext, key):
+    """Расшифровывает текст, сдвигая символы в обратную сторону на величину key"""
     if has_mixed_alphabets(ciphertext):
         return MIXED_ALPHABETS_ERROR
     alphabet = detect_alphabet(ciphertext)
@@ -114,6 +123,7 @@ def caesar_decrypt(ciphertext, key):
 
 
 def get_frequencies(text):
+    """Считает частоту появления каждой буквы в тексте"""
     n = len(text)
     if n == 0:
         return None
@@ -124,6 +134,7 @@ def get_frequencies(text):
 
 
 def find_best_shift_mnk(text):
+    """Ищет самый вероятный шаг сдвига по методу наименьших квадратов"""
     actual_freqs = get_frequencies(text)
     best_shift = 0
     min_sum_sq = float('inf')
@@ -140,11 +151,14 @@ def find_best_shift_mnk(text):
 
 
 def crack_caesar(ciphertext):
+    """Взламывает шифр, возвращая подобранный сдвиг и расшифрованный текст."""
     if has_mixed_alphabets(ciphertext):
         return None, MIXED_ALPHABETS_ERROR
     cleaned = clean_text(ciphertext, RUS_ALPHABET)
     if not cleaned:
         return None, "Ошибка: Текст пуст или не содержит русских букв!"
+    if len(cleaned) < 50:
+        return None, f"Ошибка: Для надежного взлома длина текста должна быть не менее 50 символов! (Сейчас букв: {len(cleaned)})"
     best_shift = find_best_shift_mnk(cleaned)
     decrypted = caesar_decrypt(cleaned, best_shift)
     if is_error(decrypted):
@@ -153,6 +167,7 @@ def crack_caesar(ciphertext):
 
 
 def set_output(output_box, text):
+    """Записывает результат в заблокированное для редактирования текстовое поле GUI."""
     output_box.config(state=tk.NORMAL)
     output_box.delete("1.0", tk.END)
     output_box.insert(tk.END, text)
@@ -160,10 +175,12 @@ def set_output(output_box, text):
 
 
 def get_input(input_box):
+    """Получает и очищает от пробелов по краям введенный пользователем текст из GUI"""
     return input_box.get("1.0", tk.END).strip()
 
 
 def validate_key(key_entry):
+    """Проверяет, ввел ли пользователь ключ в соответствующее поле ввода"""
     key = key_entry.get().strip()
     if not key:
         messagebox.showerror("Ошибка", "Введите ключ (число сдвига).")
@@ -172,6 +189,7 @@ def validate_key(key_entry):
 
 
 def build_text_section(parent, input_label, output_label, with_key=True):
+    """Конструирует стандартный блок интерфейса: поле ввода, поле вывода и (опционально) ключ"""
     ttk.Label(parent, text=input_label).pack(anchor="w")
     input_box = scrolledtext.ScrolledText(parent, height=6, wrap=tk.WORD, font=("Menlo", 11))
     input_box.pack(fill="both", expand=True, pady=(2, 8))
@@ -191,6 +209,7 @@ def build_text_section(parent, input_label, output_label, with_key=True):
 
 
 def on_encrypt(enc_input, enc_key, enc_output):
+    """Обработчик нажатия кнопки 'Зашифровать': собирает данные, шифрует и выводит результат"""
     text = get_input(enc_input)
     if not text:
         messagebox.showerror("Ошибка", "Введите текст для шифрования.")
@@ -206,6 +225,7 @@ def on_encrypt(enc_input, enc_key, enc_output):
 
 
 def on_decrypt(dec_input, dec_key, dec_output):
+    """Обработчик нажатия кнопки 'Расшифровать': собирает данные, дешифрует и выводит результат"""
     text = get_input(dec_input)
     if not text:
         messagebox.showerror("Ошибка", "Введите текст для дешифрования.")
@@ -221,6 +241,7 @@ def on_decrypt(dec_input, dec_key, dec_output):
 
 
 def on_crack(crack_input, crack_output):
+    """Обработчик нажатия кнопки 'Взломать': запускает взлом, выводит текст и показывает окно с найденным ключом"""
     text = get_input(crack_input)
     if not text:
         messagebox.showerror("Ошибка", "Введите зашифрованный текст.")
@@ -234,6 +255,7 @@ def on_crack(crack_input, crack_output):
 
 
 def build_encrypt_tab(parent):
+    """Создает и компонует элементы управления внутри вкладки шифрования."""
     enc_input, enc_key, enc_output = build_text_section(
         parent,
         "Исходный текст:",
@@ -247,6 +269,7 @@ def build_encrypt_tab(parent):
 
 
 def build_decrypt_tab(parent):
+    """Создает и компонует элементы управления внутри вкладки дешифрования."""
     dec_input, dec_key, dec_output = build_text_section(
         parent,
         "Зашифрованный текст:",
@@ -260,6 +283,7 @@ def build_decrypt_tab(parent):
 
 
 def build_crack_tab(parent):
+    """Создает и компонует элементы управления внутри вкладки взлома текста"""
     ttk.Label(
         parent,
         text="Автоматический подбор ключа по частотному анализу (только русский текст).",
@@ -279,15 +303,17 @@ def build_crack_tab(parent):
 
 
 def create_gui(root):
+    """Инициализирует главное окно приложения, стили и настраивает вкладки"""
     root.title("Шифр Цезаря")
-    root.minsize(520, 420)
+    root.minsize(620, 520)
     style = ttk.Style()
     if "clam" in style.theme_names():
         style.theme_use("clam")
     header = ttk.Label(
         root,
         text="Шифр Цезаря",
-        font=("Helvetica", 16, "bold"),
+        font=("Helvetica", 18, "bold"),
+        background="#F0F0F0"
     )
     header.pack(pady=(12, 4))
     notebook = ttk.Notebook(root)
@@ -304,6 +330,7 @@ def create_gui(root):
 
 
 def main():
+    """Точка входа в программу"""
     root = tk.Tk()
     create_gui(root)
     root.mainloop()
